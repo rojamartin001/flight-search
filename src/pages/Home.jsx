@@ -1,5 +1,4 @@
-// src/pages/Home.jsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import FlightForm from '../components/FlightForm';
 import Filters from '../components/Filters';
 
@@ -10,9 +9,18 @@ const Home = () => {
     minPrice: '',
     maxPrice: '',
     airlines: [],
-    sort: '', // ✅ added for sorting
+    sort: '',
   });
 
+  // ✅ Fetch flights from backend
+  useEffect(() => {
+    fetch('http://localhost:5000/api/flights')
+      .then((res) => res.json())
+      .then((data) => setFlights(data))
+      .catch((err) => console.error('Error fetching flights:', err));
+  }, []);
+
+  // ✅ POST flight to backend
   const handleAddFlight = (newFlight) => {
     const departure = new Date(`${newFlight.departureDate}T${newFlight.departureTime}`);
     const arrival = new Date(`${newFlight.arrivalDate}T${newFlight.arrivalTime}`);
@@ -26,7 +34,17 @@ const Home = () => {
       duration: `${hours}h ${minutes}m`,
     };
 
-    setFlights((prev) => [...prev, flightWithDuration]);
+    // ✅ Save to backend
+    fetch('http://localhost:5000/api/flights', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(flightWithDuration),
+    })
+      .then((res) => res.json())
+      .then(() => {
+        setFlights((prev) => [...prev, flightWithDuration]);
+      })
+      .catch((err) => console.error('Error adding flight:', err));
   };
 
   const handleFilterChange = (e) => {
@@ -47,6 +65,7 @@ const Home = () => {
     }
   };
 
+  // ✅ Filter flights
   const filteredFlights = flights.filter((flight) => {
     const min = filters.minPrice ? Number(filters.minPrice) : 0;
     const max = filters.maxPrice ? Number(filters.maxPrice) : Infinity;
@@ -56,7 +75,7 @@ const Home = () => {
     return matchPrice && matchAirline;
   });
 
-  // ✅ Sorting logic
+  // ✅ Sort flights
   const sortedFlights = [...filteredFlights];
   if (filters.sort === 'priceLow') {
     sortedFlights.sort((a, b) => a.price - b.price);
@@ -102,10 +121,15 @@ const Home = () => {
           <ul className="space-y-4">
             {sortedFlights.map((flight, index) => (
               <li key={index} className="border p-4 rounded shadow">
-                <p className="font-bold">{flight.airline} ({flight.flightNumber})</p>
-                <p>{flight.departureCity} → {flight.arrivalCity}</p>
+                <p className="font-bold">
+                  {flight.airline} ({flight.flightNumber})
+                </p>
                 <p>
-                  {flight.departureDate} {flight.departureTime} → {flight.arrivalDate} {flight.arrivalTime}
+                  {flight.departureCity} → {flight.arrivalCity}
+                </p>
+                <p>
+                  {flight.departureDate} {flight.departureTime} →{' '}
+                  {flight.arrivalDate} {flight.arrivalTime}
                 </p>
                 <p>Duration: {flight.duration}</p>
                 <p>Price: ₹{flight.price}</p>
